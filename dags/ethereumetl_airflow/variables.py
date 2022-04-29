@@ -23,7 +23,13 @@ def read_spark_vars(output_bucket, **kwargs):
             'spark.hadoop.fs.s3a.secret.key': read_var('s3a_secret_key', spark_prefix, True, **kwargs),
             'spark.hadoop.hive.metastore.client.socket.timeout': 600,
             'spark.executor.memory': '4g',
-            'spark.sql.warehouse.dir': read_var('warehouse_dir', spark_prefix, True, **kwargs)
+            'spark.sql.warehouse.dir': read_var('warehouse_dir', spark_prefix, True, **kwargs),
+            'spark.kubernetes.driver.podTemplateFile': read_var('driver_pod_template_file', spark_prefix, True,
+                                                                **kwargs),
+            'spark.kubernetes.executor.podTemplateFile': read_var('executor_pod_template_file', spark_prefix, True,
+                                                                  **kwargs),
+            'spark.kubernetes.driverEnv.HADOOP_USER_NAME': 150,
+            'spark.kubernetes.executorEnv.HADOOP_USER_NAME': 150
         },
         'jars': read_var('jars', spark_prefix, True, **kwargs),
         'py_files': read_var('py_files', spark_prefix, True, **kwargs)
