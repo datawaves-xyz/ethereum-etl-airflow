@@ -17,7 +17,8 @@ from ethereumetl.cli import (
     export_traces,
     extract_field,
 )
-from ethereumetl_airflow.prices_provider.prices_provider import CoinpaprikaPriceProvider
+
+from ethereumetl_airflow.price import CoinpaprikaPriceProvider
 
 
 def build_export_dag(
@@ -56,6 +57,7 @@ def build_export_dag(
     extract_token_transfers_toggle = kwargs.get('extract_token_transfers_toggle')
     export_traces_toggle = kwargs.get('export_traces_toggle')
     export_prices_usd_toggle = kwargs.get('export_prices_usd_toggle')
+    price_provider_key = kwargs.get('price_provider_key')
 
     if export_max_active_runs is None:
         export_max_active_runs = configuration.conf.getint('core', 'max_active_runs_per_dag')
@@ -274,7 +276,7 @@ def build_export_dag(
 
                 logging.info('Calling export_prices({}, {})'.format(start_ts, end_ts))
 
-                prices_provider = CoinpaprikaPriceProvider()
+                prices_provider = CoinpaprikaPriceProvider(auth_key=price_provider_key)
                 prices_provider.create_temp_csv(
                     output_path=os.path.join(tempdir, f"prices_{symbol}.csv"),
                     start=start_ts,

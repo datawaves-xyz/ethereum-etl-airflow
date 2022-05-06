@@ -4,9 +4,10 @@ from datetime import datetime
 from typing import List
 
 import pendulum as pdl
-from coinpaprika import client as Coinpaprika
+import requests
 from ethereumetl.progress_logger import ProgressLogger
-from ethereumetl_airflow.prices_provider.tokens_provider.token_provider import (
+
+from ethereumetl_airflow.token import (
     TokenProvider,
     Token,
     DuneTokenProvider
@@ -20,13 +21,15 @@ day_format = '%Y-%m-%d'
 class PriceRecord:
     attrs = ['minute', 'price', 'decimals', 'contract_address', 'symbol', 'dt']
 
-    def __init__(self,
-                 minute: str,
-                 price: float,
-                 decimals: int,
-                 contract_address: str,
-                 symbol: str,
-                 dt: str) -> None:
+    def __init__(
+            self,
+            minute: str,
+            price: float,
+            decimals: int,
+            contract_address: str,
+            symbol: str,
+            dt: str
+    ) -> None:
         self.minute = minute
         self.price = price
         self.decimals = decimals
@@ -42,11 +45,14 @@ class PriceRecord:
 
 
 class PriceProvider:
-    def __init__(self, token_provider: TokenProvider):
+    def __init__(self, token_provider: TokenProvider, auth_key: str):
         self.token_provider = token_provider
         self.progress_logger = ProgressLogger()
+        self.auth_key = auth_key
 
-    def get_single_token_daily_price(self, token: Token, start: int, end: int) -> List[PriceRecord]:
+    def get_single_token_daily_price(
+            self, token: Token, start: int, end: int,
+    ) -> List[PriceRecord]:
         raise NotImplementedError()
 
     def create_temp_csv(self, output_path: str, start: int, end: int) -> None:
@@ -70,11 +76,15 @@ class PriceProvider:
 
 
 class CoinpaprikaPriceProvider(PriceProvider):
-    def __init__(self):
-        super().__init__(token_provider=DuneTokenProvider())
+    host = "https://api-pro.coinpaprika.com"
+
+    def __init__(self, auth_key: str):
+        super().__init__(token_provider=DuneTokenProvider(), auth_key=auth_key)
 
     @staticmethod
-    def _copy_record_across_interval(record: PriceRecord, interval: int) -> List[PriceRecord]:
+    def _copy_record_across_interval(
+            record: PriceRecord, interval: int
+    ) -> List[PriceRecord]:
         start = pdl.from_format(record.minute, minutes_format)
         end = start.add(minutes=interval)
         records = []
@@ -85,12 +95,30 @@ class CoinpaprikaPriceProvider(PriceProvider):
 
         return records
 
-    def get_single_token_daily_price(self, token: Token, start: int, end: int) -> List[PriceRecord]:
-        client = Coinpaprika.Client()
-        records = []
-        res = client.historical(coin_id=token.id, start=start, end=end, limit=5000)
+    def get_single_token_daily_price(
+            self, token: Token, start: int, end: int
+    ) -> List[PriceRecord]:
+        uri = f'{self.host}/v1/tickers/{token.id}/historical'
+        res = requests.get(
+            url=uri,
+            params={
+                'start': start,
+                'end': end,
+                'limit': 5000,
+                'interval': '5m'
+            },
+            headers={
+                'Accept': 'application/json',
+                'User-Agent': 'coinpaprika/python',
+                'Authorization': self.auth_key
+            }
+        )
 
-        for item in res:
+        if not str(res.status_code).startswith('2'):
+            raise Exception(f'Coinpaprika API failed: {res.text}, {res.url}')
+
+        records = []
+        for item in res.json():
             time = pdl.instance(datetime.strptime(item['timestamp'], iso_format))
             records += self._copy_record_across_interval(
                 record=PriceRecord(

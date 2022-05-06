@@ -77,7 +77,8 @@ def read_export_dag_vars(var_prefix, **kwargs):
         'export_traces_toggle': parse_bool(
             read_var('export_traces_toggle', var_prefix, False, **kwargs)),
         'export_prices_usd_toggle': parse_bool(
-            read_var('export_prices_usd_toggle', var_prefix, False, **kwargs))
+            read_var('export_prices_usd_toggle', var_prefix, False, **kwargs)),
+        'price_provider_key': read_var('price_provider_key', None, False, **kwargs)
     }
 
     return vars
