@@ -1,0 +1,21 @@
+{
+  "clients": [
+    {
+      "company": "Datawaves",
+      "abis": [
+        {
+          "contract_name": "WyvernExchangeV1",
+          "dataset_name": "opensea",
+          "name": "atomicMatch_",
+          "type": "function"
+        },
+        {
+          "contract_name": "WyvernExchangeV2",
+          "dataset_name": "opensea",
+          "name": "atomicMatch_",
+          "type": "function"
+        }
+      ]
+    }
+  ]
+}

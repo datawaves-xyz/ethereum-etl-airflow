@@ -58,7 +58,7 @@ IMAGE_REPOSITORY="$EKS_HOST/$IMAGE_NAME"
 if [ ! -z $BUILD_IMAGE ]
 then
   aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin "$EKS_HOST"
-  docker buildx build --platform linux/amd64,linux/arm64 --push -t "$IMAGE_REPOSITORY:$IMAGE_TAG" .
+  docker buildx build --platform linux/amd64 --push -t "$IMAGE_REPOSITORY:$IMAGE_TAG" .
 fi
 
 # Create temp folder and write helm values yaml to it.

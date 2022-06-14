@@ -3,3 +3,4 @@ ethereum-etl==1.10.1
 google-cloud-bigquery
 pytest==5.4.1
 blockchain-dbt==0.1.1
+mashumaro==3.0.1
