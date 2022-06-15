@@ -1,16 +1,17 @@
 from datetime import datetime, timedelta
-from typing import List
+from typing import Dict
 
 from airflow import DAG, models
-from airflow.operators.bash_operator import BashOperator
 from airflow.operators.sensors import ExternalTaskSensor
 
-from ethereumetl_airflow.data_types import TransferABI
+from ethereumetl_airflow.data_types import TransferABI, TransferClient, DatabricksClientConfig
+from ethereumetl_airflow.operators.fixed_spark_submit_operator import FixedSparkSubmitOperator
 
 
 def build_transfer_dag(
         dag_id: str,
-        abis: List[TransferABI],
+        client: TransferClient,
+        spark_config: Dict[str, any] = None,
         parse_start_date: datetime = datetime(2018, 7, 1),
         schedule_interval: str = '0 0 * * *'
 ) -> DAG:
@@ -30,7 +31,7 @@ def build_transfer_dag(
         default_args=default_dag_args
     )
 
-    def create_transfer_tasks(abi: TransferABI) -> None:
+    def create_transfer_tasks(abi: TransferABI, client_config: DatabricksClientConfig) -> None:
         sensor = ExternalTaskSensor(
             task_id=f'wait_for_{abi.task_name}',
             external_dag_id=abi.dag_name,
@@ -43,16 +44,30 @@ def build_transfer_dag(
             dag=dag
         )
 
-        # TODO
-        task = BashOperator(
+        application_args = client_config.application_args
+        application_args += [
+            '--database-name',
+            abi.database_name,
+            '--table-name',
+            abi.table_name,
+            '--dt',
+            '{{ds}}'
+        ]
+
+        task = FixedSparkSubmitOperator(
             task_id=f'transfer_{abi.task_name}',
-            bash_command=f"echo {abi.dag_name}.{abi.task_name}",
+            name=f'transfer_{abi.task_name}',
+            java_class=spark_config['java_class'],
+            application=spark_config['application'],
+            conf=spark_config['conf'],
+            jars=spark_config['jars'],
+            application_args=application_args,
             dag=dag
         )
 
         sensor >> task
 
-    for abi in abis:
-        create_transfer_tasks(abi)
+    for abi in client.abis:
+        create_transfer_tasks(abi, client_config=client.client_config)
 
     return dag
