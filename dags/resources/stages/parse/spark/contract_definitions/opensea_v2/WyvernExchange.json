@@ -140,40 +140,16 @@
     },
     {
       "constant": true,
-      "inputs": [
-        {
-          "name": "addr",
-          "type": "address"
-        }
-      ],
-      "name": "testCopyAddress",
+      "inputs": [],
+      "name": "DOMAIN_SEPARATOR",
       "outputs": [
         {
           "name": "",
-          "type": "bytes"
+          "type": "bytes32"
         }
       ],
       "payable": false,
-      "stateMutability": "pure",
-      "type": "function"
-    },
-    {
-      "constant": true,
-      "inputs": [
-        {
-          "name": "arrToCopy",
-          "type": "bytes"
-        }
-      ],
-      "name": "testCopy",
-      "outputs": [
-        {
-          "name": "",
-          "type": "bytes"
-        }
-      ],
-      "payable": false,
-      "stateMutability": "pure",
+      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -350,6 +326,15 @@
       "type": "function"
     },
     {
+      "constant": false,
+      "inputs": [],
+      "name": "incrementNonce",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
       "constant": true,
       "inputs": [
         {
@@ -459,7 +444,7 @@
         }
       ],
       "payable": false,
-      "stateMutability": "pure",
+      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -639,7 +624,26 @@
         }
       ],
       "payable": false,
-      "stateMutability": "pure",
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "nonces",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -921,14 +925,14 @@
       "constant": true,
       "inputs": [
         {
-          "name": "",
+          "name": "hash",
           "type": "bytes32"
         }
       ],
       "name": "approvedOrders",
       "outputs": [
         {
-          "name": "",
+          "name": "approved",
           "type": "bool"
         }
       ],
@@ -945,6 +949,68 @@
         }
       ],
       "name": "transferOwnership",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "addrs",
+          "type": "address[7]"
+        },
+        {
+          "name": "uints",
+          "type": "uint256[9]"
+        },
+        {
+          "name": "feeMethod",
+          "type": "uint8"
+        },
+        {
+          "name": "side",
+          "type": "uint8"
+        },
+        {
+          "name": "saleKind",
+          "type": "uint8"
+        },
+        {
+          "name": "howToCall",
+          "type": "uint8"
+        },
+        {
+          "name": "calldata",
+          "type": "bytes"
+        },
+        {
+          "name": "replacementPattern",
+          "type": "bytes"
+        },
+        {
+          "name": "staticExtradata",
+          "type": "bytes"
+        },
+        {
+          "name": "v",
+          "type": "uint8"
+        },
+        {
+          "name": "r",
+          "type": "bytes32"
+        },
+        {
+          "name": "s",
+          "type": "bytes32"
+        },
+        {
+          "name": "nonce",
+          "type": "uint256"
+        }
+      ],
+      "name": "cancelOrderWithNonce_",
       "outputs": [],
       "payable": false,
       "stateMutability": "nonpayable",
@@ -1171,6 +1237,23 @@
       "inputs": [
         {
           "indexed": true,
+          "name": "maker",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "name": "newNonce",
+          "type": "uint256"
+        }
+      ],
+      "name": "NonceIncremented",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
           "name": "previousOwner",
           "type": "address"
         }
@@ -1196,7 +1279,7 @@
       "type": "event"
     }
   ],
-  "contract_address": "0x7Be8076f4EA4A4AD08075C2508e481d6C946D12b",
-  "contract_name": "WyvernExchangeV1",
-  "dataset_name": "opensea"
+  "contract_address": "0x7f268357A8c2552623316e2562D90e642bB538E5",
+  "contract_name": "WyvernExchange",
+  "dataset_name": "opensea_v2"
 }

@@ -10,9 +10,8 @@ class DatabricksClientConfig(DataClassDictMixin):
     databricks_http_path: str
     databricks_port: int
     databricks_personal_access_token: str
-    databricks_mount_name: str
     s3_access_key: str
-    s3_access_password: str
+    s3_secret_key: str
     s3_region: str
     s3_bucket: str
     s3_bucket_path_prefix: str
@@ -30,26 +29,18 @@ class DatabricksClientConfig(DataClassDictMixin):
 
 @dataclass(frozen=True)
 class TransferABI(DataClassDictMixin):
+    group_name: str
     contract_name: str
-    dataset_name: str
-    name: str
-    type: str
+    abi_name: str
+    abi_type: str
 
     @property
-    def dag_name(self) -> str:
-        return f'ethereum_parse_{self.dataset_name}_dag'
-
-    @property
-    def table_name(self) -> str:
-        return f'{self.contract_name}_{"call" if self.type == "function" else "evt"}_{self.name}'.lower()
-
-    @property
-    def database_name(self) -> str:
-        return self.dataset_name.lower()
+    def upstream_dag_name(self) -> str:
+        return f'ethereum_parse_{self.group_name}_dag'
 
     @property
     def task_name(self) -> str:
-        return f'{self.dataset_name}.{self.contract_name}_{"call" if self.type == "function" else "evt"}_{self.name}'
+        return f'{self.group_name}.{self.contract_name}_{"call" if self.abi_type == "function" else "evt"}_{self.abi_name}'
 
 
 @dataclass(frozen=True)
@@ -59,7 +50,11 @@ class TransferClient(DataClassDictMixin):
     client_config: DatabricksClientConfig
 
     def dag_name(self) -> str:
-        return f'ethereum_transfer_{self.company}'
+        return f'ethereum_transfer_{self.company}_dag'
+
+    @property
+    def application_args(self) -> List[any]:
+        return self.client_config.application_args
 
 
 @dataclass(frozen=True)

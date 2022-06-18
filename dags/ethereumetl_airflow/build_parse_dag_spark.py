@@ -8,8 +8,9 @@ from typing import cast, List, Dict
 from airflow import models, DAG
 from airflow.operators.sensors import ExternalTaskSensor
 from bdbt.abi.abi_type import ABI
+
 from ethereumetl_airflow.common import read_json_file
-from ethereumetl_airflow.operators.spark_sumbit_py_operator import SparkSubmitPyOperator
+from ethereumetl_airflow.operators.fixed_spark_submit_operator import FixedSparkSubmitOperator
 
 try:
     from typing import TypedDict
@@ -32,9 +33,8 @@ class ContractDefinition(TypedDict, total=False):
 def build_parse_dag(
         dag_id: str,
         dataset_folder: str,
-        output_bucket: str,
-        notification_emails: str = None,
-        spark_conf: Dict[str, any] = None,
+        spark_config: Dict[str, any] = None,
+        s3_config: Dict[str, any] = None,
         parse_start_date: datetime = datetime(2018, 7, 1),
         schedule_interval: str = '0 0 * * *'
 ) -> DAG:
@@ -47,47 +47,65 @@ def build_parse_dag(
         'retry_delay': timedelta(minutes=1)
     }
 
-    if notification_emails and len(notification_emails) > 0:
-        default_dag_args['email'] = [email.strip() for email in notification_emails.split(',')]
-
     dag = models.DAG(
         dag_id,
         catchup=False,
         schedule_interval=schedule_interval,
         default_args=default_dag_args)
 
-    # Create multiply parse tasks for one contract
-    def create_parse_tasks(
-            contract: ContractDefinition,
-            logs_sensor: ExternalTaskSensor,
-            traces_sensor: ExternalTaskSensor
-    ):
+    def create_parse_tasks(contract: ContractDefinition,
+                           _logs_sensor: ExternalTaskSensor,
+                           _traces_sensor: ExternalTaskSensor) -> None:
         for element in contract['abi']:
             etype = element['type']
 
             if etype != 'event' and etype != 'function' or len(element.get('inputs', [])) == 0:
                 continue
 
+            database_name = contract['dataset_name']
             table_name = f'{contract["contract_name"]}_{"evt" if etype == "event" else "call"}_{element["name"]}'
-            path = f's3a://{output_bucket}/ethereumetl/enrich/{contract["dataset_name"]}/{table_name}'
-            operator = SparkSubmitPyOperator(
-                dag=dag,
-                conf=spark_conf['conf'],
-                jars=spark_conf['jars'],
-                py_files=spark_conf['py_files'],
-                table_name=table_name,
-                dataset_name=contract['dataset_name'],
-                render_context={
-                    'type': 'event' if etype == 'event' else 'call',
-                    'contract_address': contract['contract_address'].lower(),
-                    'abi': json.dumps(contract['abi']),
-                    'element_name': element['name'],
-                    'path': path
-                }
+
+            application_args = [
+                '--group-name',
+                contract['dataset_name'],
+                '--contract-name',
+                contract['contract_name'],
+                '--abi-type',
+                etype,
+                '--abi-json',
+                json.dumps(element),
+                '--abi-name',
+                element['name'],
+                '--s3-access-key',
+                s3_config['access_key'],
+                '--s3-secret-key',
+                s3_config['secret_key'],
+                '--s3-bucket',
+                s3_config['bucket'],
+                '--s3-region',
+                s3_config['region'],
+                '--dt',
+                '{{ds}}'
+            ]
+
+            if 'contract_address' in contract:
+                application_args.extend([
+                    '--contract-address',
+                    contract['contract_address']
+                ])
+
+            task = FixedSparkSubmitOperator(
+                task_id=f'{database_name}.{table_name}',
+                name=f'{database_name}.{table_name}',
+                java_class=spark_config['java_class'],
+                application=spark_config['application'],
+                conf=spark_config['conf'],
+                jars=spark_config['jars'],
+                application_args=application_args,
+                dag=dag
             )
 
-            dependency = logs_sensor if etype == 'event' else traces_sensor
-            dependency >> operator
+            (logs_sensor if etype == 'event' else traces_sensor) >> task
 
     logs_sensor = ExternalTaskSensor(
         task_id=f'wait_for_ethereum_enrich_logs',

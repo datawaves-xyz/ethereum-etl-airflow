@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta
-from typing import Dict
+from typing import Dict, List
 
 from airflow import DAG, models
 from airflow.operators.sensors import ExternalTaskSensor
 
-from ethereumetl_airflow.data_types import TransferABI, TransferClient, DatabricksClientConfig
+from ethereumetl_airflow.data_types import TransferABI, TransferClient
 from ethereumetl_airflow.operators.fixed_spark_submit_operator import FixedSparkSubmitOperator
 
 
@@ -31,10 +31,10 @@ def build_transfer_dag(
         default_args=default_dag_args
     )
 
-    def create_transfer_tasks(abi: TransferABI, client_config: DatabricksClientConfig) -> None:
+    def create_transfer_tasks(abi: TransferABI, application_args: List[str]) -> None:
         sensor = ExternalTaskSensor(
             task_id=f'wait_for_{abi.task_name}',
-            external_dag_id=abi.dag_name,
+            external_dag_id=abi.upstream_dag_name,
             external_task_id=abi.task_name,
             execution_delta=timedelta(minutes=30),
             priority_weight=0,
@@ -44,12 +44,15 @@ def build_transfer_dag(
             dag=dag
         )
 
-        application_args = client_config.application_args
         application_args += [
-            '--database-name',
-            abi.database_name,
-            '--table-name',
-            abi.table_name,
+            '--group-name',
+            abi.group_name,
+            '--contract-name',
+            abi.contract_name,
+            '--abi-type',
+            abi.abi_type,
+            '--abi-name',
+            abi.abi_name,
             '--dt',
             '{{ds}}'
         ]
@@ -68,6 +71,6 @@ def build_transfer_dag(
         sensor >> task
 
     for abi in client.abis:
-        create_transfer_tasks(abi, client_config=client.client_config)
+        create_transfer_tasks(abi, application_args=client.application_args)
 
     return dag

@@ -23,7 +23,7 @@ spark_config = \
 
 for client in config.clients:
     globals()[client.dag_name()] = build_transfer_dag(
-        dag_id=client.dag_name() + '_dag',
+        dag_id=client.dag_name(),
         client=client,
         spark_config=spark_config,
         parse_start_date=datetime.strptime('2022-04-04', '%Y-%m-%d'),
