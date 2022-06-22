@@ -15,6 +15,10 @@ class DatabricksClientConfig(DataClassDictMixin):
     s3_region: str
     s3_bucket: str
     s3_bucket_path_prefix: str
+    schema_registry_s3_access_key: str
+    schema_registry_s3_secret_key: str
+    schema_registry_s3_region: str
+    load_all: str
 
     @property
     def application_args(self) -> List[any]:
@@ -46,11 +50,17 @@ class TransferABI(DataClassDictMixin):
 @dataclass(frozen=True)
 class TransferClient(DataClassDictMixin):
     company: str
+    raws: List[str]
     abis: List[TransferABI]
     client_config: DatabricksClientConfig
 
+    @property
     def dag_name(self) -> str:
-        return f'ethereum_transfer_{self.company}_dag'
+        return f'ethereum_transform_{self.company}_dag'
+
+    @property
+    def raw_dag_name(self) -> str:
+        return f'ethereum_raw_transform_{self.company}_dag'
 
     @property
     def application_args(self) -> List[any]:
